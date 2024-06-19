@@ -1,12 +1,15 @@
 package com.example.neural
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Paint
+import android.graphics.Rect
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,11 +18,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,161 +34,180 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.input.pointer.pointerInput
-import com.example.neural.ui.theme.NeuralTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+//training
+import org.jetbrains.kotlinx.dl.dataset.mnist
+
+const val DEBUG_MODE = 1
 
 class MainActivity : ComponentActivity() {
 
-    /*class OurNeuralNetwork {
-        private var w1 = Random.nextDouble()
-        private var w2 = Random.nextDouble()
-        private var w3 = Random.nextDouble()
-        private var w4 = Random.nextDouble()
-        private var w5 = Random.nextDouble()
-        private var w6 = Random.nextDouble()
-
-        private var b1 = Random.nextDouble()
-        private var b2 = Random.nextDouble()
-        private var b3 = Random.nextDouble()
-
-        fun sigmoid(x: Double): Double {
-            // Sigmoid activation function: f(x) = 1 / (1 + e^(-x))
-            return 1 / (1 + exp(-x))
-        }
-
-        fun derivSigmoid(x: Double): Double {
-            // Derivative of sigmoid: f'(x) = f(x) * (1 - f(x))
-            val fx = sigmoid(x)
-            return fx * (1 - fx)
-        }
-
-        fun mseLoss(yTrue: List<Double>, yPred: List<Double>): Double {
-            // yTrue and yPred are lists of the same length.
-            val n = yTrue.size
-            var sum = 0.0
-            for (i in yTrue.indices) {
-                sum += (yTrue[i] - yPred[i]).pow(2)
-            }
-            return sum / n
-        }
-
-        fun feedforward(x: List<Double>): Double {
-            val sumH1 = w1 * x[0] + w2 * x[1] + b1
-            val h1 = sigmoid(sumH1)
-
-            val sumH2 = w3 * x[0] + w4 * x[1] + b2
-            val h2 = sigmoid(sumH2)
-
-            val sumO1 = w5 * h1 + w6 * h2 + b3
-            return sigmoid(sumO1)
-        }
-
-        fun train(data: List<List<Double>>, allYTrues: List<Double>, learnRate: Double = 0.1, epochs: Int = 500) {
-            for (epoch in 0 until epochs) {
-                for (i in data.indices) {
-                    val x = data[i]
-                    val yTrue = allYTrues[i]
-
-                    // Feedforward
-                    val sumH1 = w1 * x[0] + w2 * x[1] + b1
-                    val h1 = sigmoid(sumH1)
-
-                    val sumH2 = w3 * x[0] + w4 * x[1] + b2
-                    val h2 = sigmoid(sumH2)
-
-                    val sumO1 = w5 * h1 + w6 * h2 + b3
-                    val yPred = sigmoid(sumO1)
-
-                    // Backpropagation
-                    val dLdYpred = -2 * (yTrue - yPred)
-                    val dYpreddW5 = h1 * derivSigmoid(sumO1)
-                    val dYpreddW6 = h2 * derivSigmoid(sumO1)
-                    val dYpreddB3 = derivSigmoid(sumO1)
-                    val dYpreddH1 = w5 * derivSigmoid(sumO1)
-                    val dYpreddH2 = w6 * derivSigmoid(sumO1)
-
-                    val dH1dW1 = x[0] * derivSigmoid(sumH1)
-                    val dH1dW2 = x[1] * derivSigmoid(sumH1)
-                    val dH1dB1 = derivSigmoid(sumH1)
-
-                    val dH2dW3 = x[0] * derivSigmoid(sumH2)
-                    val dH2dW4 = x[1] * derivSigmoid(sumH2)
-                    val dH2dB2 = derivSigmoid(sumH2)
-
-                    // Update weights and biases
-                    w1 -= learnRate * dLdYpred * dYpreddH1 * dH1dW1
-                    w2 -= learnRate * dLdYpred * dYpreddH1 * dH1dW2
-                    b1 -= learnRate * dLdYpred * dYpreddH1 * dH1dB1
-
-                    w3 -= learnRate * dLdYpred * dYpreddH2 * dH2dW3
-                    w4 -= learnRate * dLdYpred * dYpreddH2 * dH2dW4
-                    b2 -= learnRate * dLdYpred * dYpreddH2 * dH2dB2
-
-                    w5 -= learnRate * dLdYpred * dYpreddW5
-                    w6 -= learnRate * dLdYpred * dYpreddW6
-                    b3 -= learnRate * dLdYpred * dYpreddB3
-                }
-
-                // Calculate and print total loss at the end of each epoch
-                if (epoch % 10 == 0) {
-                    val yPreds = data.map { feedforward(it) }
-                    val loss = mseLoss(allYTrues, yPreds)
-                    println("Epoch $epoch loss: %.3f".format(loss))
-                }
-            }
-        }
-    }*/
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        print("staart")
-        val data = mapOf(
-            Pair(doubleArrayOf(0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,0.0, 0.0, 0.0, 0.0, 0.0,0.0, 0.0, 0.0, 0.0,0.0, 0.0, 0.0, 1.0,0.0, 0.0, 0.0, 0.0), doubleArrayOf(1.0,0.0, 0.0)),
-            Pair(doubleArrayOf(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,0.0, 0.0, 0.0, 0.0, 0.0,0.0, 0.0, 0.0, 0.0,0.0, 0.0, 0.0, 0.0,0.0, 1.0, 0.0, 0.0), doubleArrayOf(0.0,1.0, 0.0)),
-            Pair(doubleArrayOf(0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,0.0, 0.0, 0.0, 0.0, 0.0,0.0, 0.0, 0.0, 0.0,0.0, 0.0, 0.0, 0.0,0.0, 0.0, 1.0, 0.0), doubleArrayOf(0.0,0.0, 1.0)),
-        )
-        val inputSize = 5 * 5//28 * 28
-        val hiddenSize = 30
-        val outputSize = 3
-        val neural = SimpleNeuralNetwork(inputSize, hiddenSize, outputSize )
-        for (i in 0..10)neural.train(data.keys.toTypedArray(), data.values.toTypedArray())
+        val scope = CoroutineScope(Dispatchers.IO)
 
-        val result = neural.predict(data.keys.toTypedArray()[0])
-        println("result  -  ${result[0]} - ${result[1]} - ${result[2]}")
+        val inputSize = 28 * 28
+        val hiddenSize = 300
+        val hidden2size = 180
+        val outputSize = 10
+        val neural = SimpleNeuralNetwork(inputSize, hiddenSize, hidden2size, outputSize, useSavedModel = true, context = applicationContext )
+        /*scope.launch {
+            withContext(Dispatchers.IO) {
+                train(neural)
+            }
+        }*/
         setContent {
-            MainScreen()
+            MainScreen(neural, applicationContext)
         }
-        // Define dataset
-        /*val data = listOf(
-                listOf(-2.0, -1.0),  // Alice
-                listOf(25.0, 6.0),   // Bob
-                listOf(17.0, 4.0),   // Charlie
-                listOf(-15.0, -6.0)  // Diana
-        )
-        val allYTrues = listOf(1.0, 0.0, 0.0, 1.0)
+    }
 
-        // Train our neural network
-        val network = OurNeuralNetwork()
-        network.train(data, allYTrues)
+    private fun train(neural: SimpleNeuralNetwork){
+        if(!neural.actionAllow)return
+        //массив данных обучения
+        val imagesList: Array<DoubleArray> = Array(10000) { DoubleArray(0) }
+        val valuesList: Array<DoubleArray> = Array(10000) { DoubleArray(0) }
+        val datasList: Array<Int> = Array<Int>(10){0}
 
-        // Make some predictions
-        val emily = listOf(-7.0, -3.0)  // Emily
-        val frank = listOf(20.0, 2.0)   // Frank
-        println("Emily: %.3f".format(network.feedforward(emily)))  // Expected: ~0.951 (F)
-        println("Frank: %.3f".format(network.feedforward(frank)))  // Expected: ~0.039 (M)*/
+        // Загрузка датасета MNIST
+        val cacheDir = this.cacheDir
+        val (train, test) = mnist(cacheDirectory = cacheDir)
 
+        for (i in 0..9999) {
+            //извлечени изображения из обучающего набора
+            val firstImage = train.x[i]
+            val firstImageLabel = train.y[i]
 
+            datasList[firstImageLabel.toInt()]++
+
+            imagesList[i] = DoubleArray(28 * 28)
+
+            val numClasses = 10
+            valuesList[i] = DoubleArray(numClasses) { 0.0 }
+            valuesList[i][firstImageLabel.toInt()] = 1.0
+            println("init value ${firstImageLabel.toInt()}")
+
+            for (y in 0 until 28) {
+                for (x in 0 until 28) {
+                    // Извлечение пиксельного значения и преобразование его в диапазон 0-255
+                    val pixelValue = (firstImage[y * 28 + x] * 255).toDouble()
+                    imagesList[i][y * 28 + x] = pixelValue
+                }
+            }
+        }
+        print("startTraaaaain "+datasList.joinToString(separator = " | "))
+        neural.train(imagesList, valuesList, baseContext)
     }
 }
 
+fun cropEmptyPixels(bitmap: Bitmap): Bitmap {
+    val width = bitmap.width
+    val height = bitmap.height
+
+    var minX = width
+    var minY = height
+    var maxX = 0
+    var maxY = 0
+
+    // Найдем границы области с содержимым
+    for (y in 0 until height) {
+        for (x in 0 until width) {
+            if (bitmap.getPixel(x, y) != android.graphics.Color.TRANSPARENT) {
+                if (x < minX) minX = x
+                if (x > maxX) maxX = x
+                if (y < minY) minY = y
+                if (y > maxY) maxY = y
+            }
+        }
+    }
+
+    // Рассчитаем размеры квадрата, содержащего все непустые пиксели
+    val squareSize = maxOf(maxX - minX + 1, maxY - minY + 1)+40
+
+    // Создадим новое изображение с новыми размерами
+    val croppedBitmap = Bitmap.createBitmap(squareSize, squareSize, Bitmap.Config.ARGB_8888)
+
+    // Создаем холст для нового изображения
+    val canvas = android.graphics.Canvas(croppedBitmap)
+
+    // Рассчитаем координаты для копирования области с содержимым в новое изображение
+    val offsetX = ((squareSize - (maxX - minX + 1)) / 2)
+    val offsetY = ((squareSize - (maxY - minY + 1)) / 2)
+
+    // Копируем область с содержимым в новое изображение
+    val srcRect = Rect(minX, minY, maxX + 1, maxY + 1)
+    val destRect = Rect(offsetX, offsetY, offsetX + maxX - minX + 1, offsetY + maxY - minY + 1)
+    canvas.drawBitmap(bitmap, srcRect, destRect, null)
+
+    return croppedBitmap
+}
+
+
 @Composable
-fun MainScreen() {
+fun MainScreen(neural: SimpleNeuralNetwork?, context: Context?) {
+    var showDialog by remember { mutableStateOf(false) }
+    var dialogBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
+    var pixels = IntArray(28 * 28)
+    var canvasWidth: Int = 0
+    var canvasHeight: Int = 0
+
     var lines by remember { mutableStateOf(emptyList<Pair<Offset, Offset>>()) }
     var rememberedNumber by remember { mutableStateOf<Int?>(0) }
     var recognizedNumber by remember { mutableStateOf<Int?>(null) }
     var isDropdownMenuExpanded by remember { mutableStateOf(false) }
     val dropdownItems = (0..9).toList()
     val padding = 16.dp // Отступ для области холста
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+    @Composable
+    fun MyDialogWithImage(
+        onDismiss: () -> Unit
+    ) {
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false; onDismiss()},
+                title = { Text(text = "Подтверждение действия") },
+                text = {Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier.background(color= Color.Gray)
+                    ) {
+                        Image(
+                            bitmap = dialogBitmap!!,
+                            contentDescription = null,
+                            contentScale = ContentScale.Inside,
+                        )
+                    }
+                }
+                },
+                confirmButton = {
+                    Button(onClick = { showDialog = false; onDismiss() },) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -199,9 +221,9 @@ fun MainScreen() {
         Canvas(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()
                 .border(1.dp, Color.Black)
                 .padding(padding)
+                .fillMaxWidth()
                 .pointerInput(Unit) {
                     detectDragGestures(
                         onDragStart = {
@@ -209,8 +231,7 @@ fun MainScreen() {
                         },
                         onDrag = { change, _ ->
                             val position = change.position
-                            if (position.x.toInt() in 0..this.size.width && position.y.toInt() in 0..this.size.height
-                            ) {
+                            if (position.x.toInt() in 0..size.width && position.y.toInt() in 0..size.height) {
                                 lines =
                                     lines + Pair(lines.lastOrNull()?.second ?: position, position)
                             }
@@ -218,13 +239,17 @@ fun MainScreen() {
                     )
                 }
         ) {
-            lines.forEach { (start, end) ->
-                drawLine(
-                    color = Color.Black,
-                    start = start,
-                    end = end,
-                    strokeWidth = 40f
-                )
+            canvasWidth = size.width.toInt()
+            canvasHeight = size.height.toInt()
+            drawIntoCanvas {
+                lines.forEach { (start, end) ->
+                    drawLine(
+                        color = Color.Black,
+                        start = start,
+                        end = end,
+                        strokeWidth = 50f
+                    )
+                }
             }
         }
         Row(
@@ -232,8 +257,49 @@ fun MainScreen() {
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Divider(
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .height(40.dp)  //fill the max height
+                    .width(1.dp)
+            )
             Button(contentPadding = PaddingValues(horizontal = 6.dp), onClick = {
-                rememberedNumber = lines.size // For simplicity, using the number of lines as remembered number
+                // Создаем Bitmap и рисуем на нем
+                val tempBitmap = Bitmap.createBitmap(canvasWidth, canvasHeight, Bitmap.Config.ARGB_8888)
+                val canvas = android.graphics.Canvas(tempBitmap)
+                val paint = Paint().apply {
+                    color = android.graphics.Color.BLACK
+                    strokeWidth = 40f
+                }
+                lines.forEach { (start, end) ->
+                    canvas.drawLine(start.x, start.y, end.x, end.y, paint)
+                }
+
+                // Обрезаем пустые пиксели по краям
+                val croppedBitmap = cropEmptyPixels(tempBitmap)
+
+                // Масштабируем Bitmap до 28x28
+                val scaledBitmap = Bitmap.createScaledBitmap(croppedBitmap, 28, 28, true)
+                scaledBitmap.getPixels(pixels, 0, 28, 0, 0, 28, 28)
+
+                for (i in pixels.indices) {
+                    if (pixels[i] != 0) {
+                        pixels[i] = 255
+                    }
+                }
+                dialogBitmap = croppedBitmap.asImageBitmap()
+                if(DEBUG_MODE==1)showDialog = true
+
+                val images = Array<DoubleArray>(10){ DoubleArray(28*28) }
+                val value = arrayOf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+                if(rememberedNumber!=null)value[rememberedNumber!!]=1.0
+                val valueArray = Array<DoubleArray>(10){ DoubleArray(28*28) }
+                for (i in 0..9){
+                    images[i]=pixels.map { it.toDouble() }.toDoubleArray()
+                    valueArray[i]=value.toDoubleArray()
+                }
+                println("train value - $rememberedNumber for current image")
+                neural?.train(images, valueArray, context!!)
             }) {
                 Text("Запомнить")
             }
@@ -255,25 +321,81 @@ fun MainScreen() {
             Button(onClick = { isDropdownMenuExpanded = true }) {
                 Text(rememberedNumber?.toString() ?: "Выберите число")
             }
-            Box{}
+            Divider(
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .height(40.dp)  //fill the max height
+                    .width(1.dp)
+            )
             Button(onClick = {
-                recognizedNumber = lines.size // For simplicity, using the number of lines as recognized number
+                // Создаем Bitmap и рисуем на нем
+                val tempBitmap = Bitmap.createBitmap(canvasWidth, canvasHeight, Bitmap.Config.ARGB_8888)
+                val canvas = android.graphics.Canvas(tempBitmap)
+                val paint = Paint().apply {
+                    color = android.graphics.Color.BLACK
+                    strokeWidth = 40f
+                }
+                lines.forEach { (start, end) ->
+                    canvas.drawLine(start.x, start.y, end.x, end.y, paint)
+                }
+
+                // Обрезаем пустые пиксели по краям
+                val croppedBitmap = cropEmptyPixels(tempBitmap)
+
+                dialogBitmap = croppedBitmap.asImageBitmap()
+                if(DEBUG_MODE==1)showDialog = true
+                // Масштабируем Bitmap до 28x28
+                val scaledBitmap = Bitmap.createScaledBitmap(croppedBitmap, 28, 28, true)
+                scaledBitmap.getPixels(pixels, 0, 28, 0, 0, 28, 28)
+
+                for (i in pixels.indices) {
+                    if (pixels[i] != 0) {
+                        pixels[i] = 255
+                    }
+                }
+                dialogBitmap = croppedBitmap.asImageBitmap()
+                if(DEBUG_MODE==1)showDialog = true
+
+
+                val result = if(neural?.actionAllow==true)(neural.predict(pixels.map { it.toDouble() }.toDoubleArray())) else arrayOf(1.0)
+                val intResult = result.indexOf(result.max())
+                recognizedNumber = intResult
+                println("reconition result - $intResult")
             }) {
                 Text("Распознать")
             }
+            Box(modifier = Modifier
+                .height(40.dp)
+                .width(40.dp)
+                .clip(CircleShape)
+                .background(color = MaterialTheme.colorScheme.primary)) {
+                BasicTextField(
+                    value = recognizedNumber?.toString() ?: "",
+                    onValueChange = { },
+                    readOnly = true,
+                    textStyle = TextStyle(
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center
+                    ),
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .fillMaxWidth()
+                )
+            }
+            Divider(
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .height(40.dp)  //fill the max height
+                    .width(1.dp)
+            )
         }
-        TextField(
-            value = recognizedNumber?.toString() ?: "",
-            onValueChange = { },
-            label = { Text("Распознанное число") },
-            readOnly = true,
-            modifier = Modifier.fillMaxWidth()
-        )
+        MyDialogWithImage(onDismiss = { /* Обработка закрытия диалога */ })
     }
 }
 
 @Preview
 @Composable
 fun PreviewMainScreen() {
-    MainScreen()
+    MainScreen(null, null)
 }

@@ -67,4 +67,9 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    //вфефыуе
+    implementation("org.jetbrains.kotlinx:kotlin-deeplearning-api:0.4.0")
+    implementation("org.jetbrains.kotlinx:kotlin-deeplearning-onnx:0.4.0")
+    implementation("org.jetbrains.kotlinx:kotlin-deeplearning-dataset:0.4.0")
 }
